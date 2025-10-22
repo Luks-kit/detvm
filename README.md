@@ -9,7 +9,7 @@ It’s small, fast, and written in C++ — built to be easily hacked on or embed
 
 The project is split into two main parts:
 
-- **Compiler** – Assembles `.det` source files into bytecode (`.dvm`).
+- **Compiler** – Assembles `.detasm` source files into bytecode (`.detbc`).
 - **PVM (Program Virtual Machine)** – Executes compiled bytecode files with isolated stack frames, local registers, and a simple instruction set.
 
 

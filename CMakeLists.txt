@@ -1,14 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
-project(detvm)
+cmake_minimum_required(VERSION 3.16)
+project(detvm LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(inc)
-
-add_executable(detvm src/main.cpp
-                     src/ops.cpp
-                     src/vm.cpp
-                     src/helpers.cpp
-                     src/assembler.cpp
-                     src/linker.cpp)
-
+add_subdirectory(vm)
+add_subdirectory(asm)

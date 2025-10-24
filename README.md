@@ -58,8 +58,12 @@ Example assembly snippet:
 
 ```asm
 .func main
+.params 0
+.locals 0
     LOADC %r0, 42
-    CALL print_num, %r0
+    LOADP %p0, %r0
+    CALL print_num
+    RET
 .end
 ```
 Bigger example in docs/example/factorial.detasm

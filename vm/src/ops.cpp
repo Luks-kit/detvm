@@ -3,8 +3,11 @@
 namespace detvm {
 
 
-// === Minimal Arithmetic / MOV / PRINT ===
-void VM::op_loadc(const Instruction& i) { regs[i.a] = Value(i.b); pc++; }
+void VM::op_loadc(const Instruction& i) { 
+    Value val = constant_pool[i.b];
+    regs[i.a] = val;
+}
+
 // Load local variable (Frame.locals) into a global register
 void VM::op_loadl(const Instruction& i) {
     if (callstack.empty()) { pc++; return; }
@@ -18,6 +21,8 @@ void VM::op_loadl(const Instruction& i) {
     regs[i.a] = f.locals[i.b];  // load local into register
     pc++;
 }
+
+
 
 // Store value from global register into a local variable
 void VM::op_storel(const Instruction& i) {
@@ -141,7 +146,8 @@ constexpr size_t RETURN_REG = 0; // always return to regs[0]
 void VM::op_enter(const Instruction& i) {
     Frame f;
     f.return_pc = pc + 1;
-    f.locals.resize(i.b + i.c);
+    f.locals.resize(i.c);
+    f.args.resize(i.b);
     callstack.push(f);
 }
 
@@ -167,16 +173,16 @@ void VM::op_leave(const Instruction&) {
 
 // Call a function at PC = i.a, passing `argc` arguments from regs[0..argc-1]
 void VM::op_call(const Instruction& i) {
-    uint8_t argc = i.b;          // number of arguments
+    uint16_t argc = i.b;          // number of arguments
     size_t func_pc = i.a;        // target function PC
-    uint8_t localc = i.c;
+    uint16_t localc = i.c;
     // push new frame
     op_enter({Opcode::ENTER, 0 , argc, localc}); // argc is passed as op_enter's i.a
 
     // Copy arguments into frame locals
     Frame& f = callstack.top();
     for (size_t j = 0; j < argc; ++j) {
-        f.locals[j] = regs[j];  // first `argc` locals are parameters
+        f.locals[j] = params[j];  // first `argc` locals are parameters
     }
     
     // jump to function start
@@ -202,8 +208,121 @@ void VM::op_ret(const Instruction& i) {
     op_leave({});
 
     // store return value into fixed return register
-    regs[RETURN_REG] = retVal;
+    params[RETURN_REG] = retVal;
 }
+
+void VM::op_mov_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = frame.locals[i.b];
+    pc++;
+}
+
+void VM::op_add_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(frame.locals[i.b].asInt() + frame.locals[i.c].asInt());
+    pc++;
+}
+
+void VM::op_sub_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(frame.locals[i.b].asInt() - frame.locals[i.c].asInt());
+    pc++;
+}
+
+void VM::op_mul_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(frame.locals[i.b].asInt() * frame.locals[i.c].asInt());
+    pc++;
+}
+
+void VM::op_div_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(frame.locals[i.b].asInt() / frame.locals[i.c].asInt());
+    pc++;
+}
+
+void VM::op_neg_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(-frame.locals[i.b].asInt());
+    pc++;
+}
+
+void VM::op_cmp_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    int32_t lhs = frame.locals[i.b].asInt();
+    int32_t rhs = frame.locals[i.c].asInt();
+    frame.locals[i.a] = Value(lhs < rhs ? -1 : (lhs > rhs ? 1 : 0));
+    pc++;
+}
+
+void VM::op_not_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(!frame.locals[i.b].asBool());
+    pc++;
+}
+
+void VM::op_and_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(frame.locals[i.b].asBool() && frame.locals[i.c].asBool());
+    pc++;
+}
+
+void VM::op_or_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = Value(frame.locals[i.b].asBool() || frame.locals[i.c].asBool());
+    pc++;
+}
+
+// Jumps operate on local condition variables
+void VM::op_jz_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    if (!frame.locals[i.a].asInt()) pc = i.b;
+    else pc++;
+}
+
+void VM::op_jnz_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    if (frame.locals[i.a].asInt()) pc = i.b;
+    else pc++;
+}
+
+void VM::op_jl_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    if (frame.locals[i.a].asInt() < 0) pc = i.b;
+    else pc++;
+}
+
+void VM::op_jg_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    if (frame.locals[i.a].asInt() > 0) pc = i.b;
+    else pc++;
+}
+
+void VM::op_loadc_local(const Instruction& i) {
+    auto& frame = callstack.top();
+    Value val = constant_pool[i.b];
+    frame.locals[i.a] = val;
+    pc++;
+}
+
+
+void VM::op_load_arg(const Instruction& i) {
+    auto& frame = callstack.top();
+    frame.locals[i.a] = frame.args[i.b];
+    pc++;
+}
+
+void VM::op_load_param(const Instruction& i) {
+    params[i.a] = regs[i.b];
+    pc++;
+}
+
+void VM::op_load_paraml(const Instruction& i){
+    auto& frame = callstack.top();
+    params[i.a] = frame.locals[i.b];
+    pc++;
+}
+
 
 void VM::op_nop(const Instruction&) {
     // do nothing

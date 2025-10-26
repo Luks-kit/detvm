@@ -1,14 +1,14 @@
 
-project(detvm_vm LANGUAGES CXX)
+project(detvm LANGUAGES CXX)
 
 file(GLOB VM_SRC
     src/*.cpp
 )
 file(GLOB VM_INC
-    inc/*.hpp
+    ../inc/*.hpp
 )
 
 
 
-add_executable(vm ${VM_SRC} ${VM_INC})
-target_include_directories(vm PRIVATE inc)
+add_executable(detvm ${VM_SRC} ${VM_INC})
+target_include_directories(detvm PRIVATE ../inc)

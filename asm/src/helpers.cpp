@@ -1,4 +1,5 @@
 #include "helpers.hpp"
+#include "constant_pool.hpp"
 #include <sstream>
 #include <unordered_map>
 #include <stdexcept>
@@ -14,17 +15,19 @@ std::string trim(const std::string& s) {
     return s.substr(first, last - first + 1);
 }
 
-size_t parseReg(const std::string& token, bool& isLocal) {
+size_t parseReg(const std::string& token, char& regtype) {
     if (token.size() >= 3 && token[0] == '%') {
-        if (token[1] == 'r') {
-            isLocal = false;
-            return std::stoi(token.substr(2));
-        } else if (token[1] == 'l') {
-            isLocal = true;
-            return std::stoi(token.substr(2));
-        }
+       switch(token[1]) {
+        case 'l':
+        case 'a':
+        case 'p':
+        case 'r': 
+            regtype = token[1]; break;
+        default: throw std::runtime_error("Invalid register: " + token);
+       }
+        return std::stoi(token.substr(2));
     }
-    throw std::runtime_error("Invalid register/local: " + token);
+    throw std::runtime_error("Invalid register: " + token);
 }
 
 std::string getOperandToken(const std::string& line, size_t index) {
@@ -45,23 +48,30 @@ std::string getOperandToken(const std::string& line, size_t index) {
 
 detvm::Opcode mnemonicToOpcode(const std::string& mnemonic) {
     static std::unordered_map<std::string, detvm::Opcode> table = {
-        {"LOADC",   detvm::Opcode::LOADC}, {"LOADL",   detvm::Opcode::LOADL}, {"STOREL",  detvm::Opcode::STOREL},
-        {"MOV",     detvm::Opcode::MOV},   {"ADD",     detvm::Opcode::ADD},   {"SUB",     detvm::Opcode::SUB},
-        {"MUL",     detvm::Opcode::MUL},   {"DIV",     detvm::Opcode::DIV},   {"NEG",     detvm::Opcode::NEG},
-        {"CMP",     detvm::Opcode::CMP},   {"NOT",     detvm::Opcode::NOT},   {"AND",     detvm::Opcode::AND},
-        {"OR",      detvm::Opcode::OR},    {"LEN",     detvm::Opcode::LEN},   {"NEWARR",  detvm::Opcode::NEWARR},
-        {"LOADARR", detvm::Opcode::LOADARR},{"STOREARR",detvm::Opcode::STOREARR},{"JMP", detvm::Opcode::JMP},
-        {"JZ",      detvm::Opcode::JZ},    {"JNZ",     detvm::Opcode::JNZ},   {"JL",      detvm::Opcode::JL},
-        {"JG",      detvm::Opcode::JG},    {"CALL",    detvm::Opcode::CALL},  {"RET",     detvm::Opcode::RET},
-        {"PRINT",   detvm::Opcode::PRINT}, {"RAIIDROP",detvm::Opcode::RAIIDROP}, {"HALT", detvm::Opcode::HALT},
-    };
+    {"LOADC",    detvm::Opcode::LOADC},   {"LOADCL",  detvm::Opcode::LOADCL}, {"LOADL",   detvm::Opcode::LOADL}, 
+    {"STOREL",   detvm::Opcode::STOREL},  {"MOV",     detvm::Opcode::MOV},    {"MOVL",    detvm::Opcode::MOVL},
+    {"ADD",      detvm::Opcode::ADD},     {"ADDL",    detvm::Opcode::ADDL},   {"SUB",     detvm::Opcode::SUB},
+    {"SUBL",     detvm::Opcode::SUBL},    {"MUL",     detvm::Opcode::MUL},    {"MULL",    detvm::Opcode::MULL},
+    {"DIV",      detvm::Opcode::DIV},     {"DIVL",    detvm::Opcode::DIVL},   {"NEG",     detvm::Opcode::NEG},
+    {"NEGL",     detvm::Opcode::NEGL},    {"CMP",     detvm::Opcode::CMP},    {"CMPL",    detvm::Opcode::CMPL},
+    {"NOT",      detvm::Opcode::NOT},     {"NOTL",    detvm::Opcode::NOTL},   {"AND",     detvm::Opcode::AND},
+    {"ANDL",     detvm::Opcode::ANDL},    {"OR",      detvm::Opcode::OR},     {"ORL",     detvm::Opcode::ORL},
+    {"LEN",      detvm::Opcode::LEN},     {"NEWARR",  detvm::Opcode::NEWARR}, {"LOADARR", detvm::Opcode::LOADARR},
+    {"STOREARR", detvm::Opcode::STOREARR},{"JMP",     detvm::Opcode::JMP},    {"JZ",      detvm::Opcode::JZ},
+    {"JNZ",      detvm::Opcode::JNZ},     {"JL",      detvm::Opcode::JL},     {"JG",      detvm::Opcode::JG},
+    {"JLZ", detvm::Opcode::JLZ},          {"JLNZ", detvm::Opcode::JLNZ},      {"JLL", detvm::Opcode::JLL}, 
+    {"JLG", detvm::Opcode::JLG},          {"LOADP", detvm::Opcode::LOADP},    {"LOADLP", detvm::Opcode::LOADLP},
+    {"CALL",     detvm::Opcode::CALL},    {"RET",     detvm::Opcode::RET},    {"PRINT",   detvm::Opcode::PRINT},
+    {"RAIIDROP", detvm::Opcode::RAIIDROP},{"HALT",    detvm::Opcode::HALT}
+};
+
     auto it = table.find(mnemonic);
     if (it == table.end()) throw std::runtime_error("Unknown mnemonic: " + mnemonic);
     return it->second;
 }
 
 // === parseInstruction takes a line and turns it into an Instruction (to be taken by the assembler) ===
-detvm::Instruction parseInstruction(const std::string& line) {
+detvm::Instruction parseInstruction(const std::string& line, ConstantPool& pool) {
     std::string cleaned = trim(line);
     if (cleaned.empty() || cleaned[0] == ';') return {};
 
@@ -84,141 +94,182 @@ detvm::Instruction parseInstruction(const std::string& line) {
     detvm::Instruction inst{};
     inst.opcode = op;
 
-    bool isLocal = false;
+   char regtype;
 
-    switch(op) {
-        case detvm::Opcode::LOADC: {
-            if (tokens.size() != 1) throw std::runtime_error("LOADC needs one operand");
-            inst.a = parseReg(dst, isLocal);
-            if (isLocal) throw std::runtime_error("LOADC destination cannot be local");
-            inst.b = std::stoi(tokens[0]);
-            break;
-        }
-        case detvm::Opcode::MOV:
-        case detvm::Opcode::LEN: {
-            if (tokens.size() != 1) throw std::runtime_error("MOV/LEN need one operand");
-            inst.a = parseReg(dst, isLocal);
-            bool srcIsLocal;
-            size_t src = parseReg(tokens[0], srcIsLocal);
-            if (op == detvm::Opcode::LEN && srcIsLocal) 
-                throw std::runtime_error("LEN source must be a global array register");
-            inst.b = src;
-            break;
-        }
-        case detvm::Opcode::LOADL:{
-            if (tokens.size() != 1) throw std::runtime_error("LOADL needs one operand");
-            inst.a = parseReg(dst, isLocal);
-            if (isLocal) throw std::runtime_error("LOADL destination must be a global register");
-            bool srcLocal;
-            inst.b = parseReg(tokens[0], srcLocal);
-            if (!srcLocal) throw std::runtime_error("LOADL source must be a local (%lN)");
-            break;
-        }
-        case detvm::Opcode::STOREL: {
-            if (tokens.size() != 1) throw std::runtime_error("STOREL needs one operand");
-            inst.a = parseReg(dst, isLocal);
-            if (!isLocal) throw std::runtime_error("STOREL destination must be a local (%lN)");
-            bool srcIsL;
-            inst.b = parseReg(tokens[0], srcIsL);
-            if (srcIsL) throw std::runtime_error("STOREL source must be a global register (%rN)");
-            break;
-        }
-        case detvm::Opcode::ADD:
-        case detvm::Opcode::SUB:
-        case detvm::Opcode::MUL:
-        case detvm::Opcode::DIV:
-        case detvm::Opcode::CMP: {
-            bool dummyLocal;
-            inst.a = parseReg(dst, dummyLocal);
-            if (dummyLocal) throw std::runtime_error("Arithmetic destination cannot be local");
-            inst.b = parseReg(tokens[0], dummyLocal);
-            if (dummyLocal) throw std::runtime_error("Arithmetic source B cannot be local");
-            inst.c = parseReg(tokens[1], dummyLocal);
-            if (dummyLocal) throw std::runtime_error("Arithmetic source C cannot be local");
-            break;
-        }
-        case detvm::Opcode::NEG:
-        case detvm::Opcode::NOT: {
-            bool dstLocal = false, bLocal = false;
-            inst.a = parseReg(dst, dstLocal);
-            if (dstLocal) throw std::runtime_error("Destination of NEG/NOT must be a global register (%rN)");
-            inst.b = parseReg(tokens[0], bLocal);
-            if (bLocal) throw std::runtime_error("Source of NEG/NOT must be a global register (%rN)");
-            inst.c = 0;
-            break;
-        }
-        case detvm::Opcode::AND:
-        case detvm::Opcode::OR: {
-            bool dstLocal=false, bLocal=false, cLocal=false;
-            inst.a = parseReg(dst, dstLocal);
-            if (dstLocal) throw std::runtime_error("Destination of AND/OR must be a global register (%rN)");
-            inst.b = parseReg(tokens[0], bLocal);
-            if (bLocal) throw std::runtime_error("First source of AND/OR must be a global register (%rN)");
-            inst.c = parseReg(tokens[1], cLocal);
-            if (cLocal) throw std::runtime_error("Second source of AND/OR must be a global register (%rN)");
-            break;
-        }
-        case detvm::Opcode::NEWARR: {
-            bool dstLocal=false;
-            inst.a = parseReg(dst, dstLocal);
-            if (dstLocal) throw std::runtime_error("Destination of NEWARR must be a global register (%rN)");
-            inst.c = std::stoi(tokens[0]);
-            break;
-        }
-        case detvm::Opcode::LOADARR: {
-            bool dstLocal=false, bLocal=false, cLocal=false;
-            inst.a = parseReg(dst, dstLocal);
-            if (dstLocal) throw std::runtime_error("Destination of LOADARR must be a global register (%rN)");
-            inst.b = parseReg(tokens[0], bLocal);
-            inst.c = parseReg(tokens[1], cLocal);
-            if (bLocal || cLocal) throw std::runtime_error("Sources of LOADARR must be global registers (%rN)");
-            break;
-        }
-        case detvm::Opcode::STOREARR: {
-            bool aLocal=false, bLocal=false, cLocal=false;
-            inst.a = parseReg(dst, aLocal);
-            inst.b = parseReg(tokens[0], bLocal);
-            inst.c = parseReg(tokens[1], cLocal);
-            if (aLocal || bLocal || cLocal) throw std::runtime_error("All operands of STOREARR must be global registers (%rN)");
-            break;
-        }
-        case detvm::Opcode::PRINT:
-        case detvm::Opcode::RET:
-        case detvm::Opcode::RAIIDROP: {
-            if (!dst.empty()) inst.a = parseReg(dst, isLocal);
-            else if (!tokens.empty()) inst.a = parseReg(tokens[0], isLocal);
-            else throw std::runtime_error("Instruction requires a target register");
-            break;
-        }
-       case detvm::Opcode::CALL: {
-            if (tokens.size() != 1) throw std::runtime_error("CALL needs one operand for destination");
-
-            inst.a = 0xFF;       // placeholder for function PC, patched by linker
-            inst.b = 0;          // actual argument count (added by the assembler)
-            inst.c = 0;          // unused
-            break;
-        }
-
-        case detvm::Opcode::JMP: {
-            inst.a = 0xFF;       // unresolved target label
-            inst.b = 0;          // unused
-            inst.c = 0;
-            break;
-        }
-
-        case detvm::Opcode::JZ:
-        case detvm::Opcode::JNZ:
-        case detvm::Opcode::JL:
-        case detvm::Opcode::JG: {
-            if (tokens.size() != 2) throw std::runtime_error("Conditional jump needs target label");
-            inst.a = parseReg(tokens[0], isLocal);  // register to check
-            inst.b = 0xFF;                     // unresolved target label, patched later
-            inst.c = 0;
-            break;
-        }
-        default: break;
+switch(op) {
+    case detvm::Opcode::LOADC: {
+        if (tokens.size() != 1) throw std::runtime_error("LOADC needs one operand");
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'r') throw std::runtime_error("LOADC destination must be global (%rN)");
+        size_t constidx;
+        if(pool.isInt(tokens[0])) constidx = pool.addInt(std::stoi(tokens[0]));
+        else if(pool.isFloat(tokens[0])) constidx = pool.addDouble(std::stod(tokens[0]));
+        else constidx = pool.addString(tokens[0]);
+        inst.b = static_cast<uint16_t>(constidx);
+        break;
     }
+    case detvm::Opcode::LOADCL: {
+        if (tokens.size() != 1) throw std::runtime_error("LOADCL needs one operand");
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'l') throw std::runtime_error("LOADCL destination must be local (%lN)");
+        size_t constidx;
+        if(pool.isInt(tokens[0])) constidx = pool.addInt(std::stoi(tokens[0]));
+        else if(pool.isFloat(tokens[0])) constidx = pool.addDouble(std::stod(tokens[0]));
+        else constidx = pool.addString(tokens[0]);
+        inst.b = static_cast<uint16_t>(constidx);
+        break;
+    }
+    case detvm::Opcode::LOADL:
+        if (tokens.size() != 1) throw std::runtime_error("LOADL needs one operand");
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'r') throw std::runtime_error("LOADL destination must be global (%rN)");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'l') throw std::runtime_error("LOADL source must be local (%lN)");
+        break;
 
+    case detvm::Opcode::STOREL:
+        if (tokens.size() != 1) throw std::runtime_error("STOREL needs one operand");
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'l') throw std::runtime_error("STOREL destination must be local (%lN)");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("STOREL source must be global (%rN)");
+        break;
+
+    // Arithmetic (global)
+    case detvm::Opcode::ADD:
+    case detvm::Opcode::SUB:
+    case detvm::Opcode::MUL:
+    case detvm::Opcode::DIV:
+    case detvm::Opcode::CMP:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'r') throw std::runtime_error("Arithmetic destination must be global");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("Arithmetic source B must be global");
+        inst.c = parseReg(tokens[1], regtype);
+        if (regtype != 'r') throw std::runtime_error("Arithmetic source C must be global");
+        break;
+
+    case detvm::Opcode::NEG:
+    case detvm::Opcode::NOT:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'r') throw std::runtime_error("NEG/NOT destination must be global");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("NEG/NOT source must be global");
+        inst.c = 0;
+        break;
+
+    case detvm::Opcode::AND:
+    case detvm::Opcode::OR:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'r') throw std::runtime_error("AND/OR destination must be global");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("AND/OR first source must be global");
+        inst.c = parseReg(tokens[1], regtype);
+        if (regtype != 'r') throw std::runtime_error("AND/OR second source must be global");
+        break;
+
+    // Arithmetic / logic local variants
+    case detvm::Opcode::ADDL:
+    case detvm::Opcode::SUBL:
+    case detvm::Opcode::MULL:
+    case detvm::Opcode::DIVL:
+    case detvm::Opcode::CMPL:
+    case detvm::Opcode::NEGL:
+    case detvm::Opcode::NOTL:
+    case detvm::Opcode::ANDL:
+    case detvm::Opcode::ORL:
+    case detvm::Opcode::MOVL:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'l') throw std::runtime_error("Local arithmetic destination must be local (%lN)");
+        inst.b = parseReg(tokens[0], regtype);
+        inst.c = (tokens.size() > 1) ? parseReg(tokens[1], regtype) : 0;
+        break;
+
+    // Local control flow
+    case detvm::Opcode::JLZ:
+    case detvm::Opcode::JLNZ:
+    case detvm::Opcode::JLL:
+    case detvm::Opcode::JLG:
+        inst.a = parseReg(tokens[0], regtype);
+        if (regtype != 'l') throw std::runtime_error("Local jump condition must be local (%lN)");
+        inst.b = 0xFF; // unresolved label
+        inst.c = 0;
+        break;
+
+    case detvm::Opcode::NEWARR:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'r') throw std::runtime_error("NEWARR destination must be global (%rN)");
+        inst.c = std::stoi(tokens[0]);
+        break;
+
+    case detvm::Opcode::LOADARR:
+    case detvm::Opcode::STOREARR:
+        inst.a = parseReg(dst, regtype);
+        char bLocal, cLocal;
+        inst.b = parseReg(tokens[0], bLocal);
+        inst.c = parseReg(tokens[1], cLocal);
+        if (bLocal != 'r' || cLocal != 'r') throw std::runtime_error("Array operands must be global (%rN)");
+        break;
+
+    case detvm::Opcode::LEN:
+        inst.a = parseReg(dst, regtype);
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("LEN source must be global (%rN)");
+        break;
+
+    case detvm::Opcode::PRINT:
+    case detvm::Opcode::RET:
+    case detvm::Opcode::RAIIDROP:
+        inst.a = dst.empty() ? parseReg(tokens[0], regtype) : parseReg(dst, regtype);
+        break;
+
+    case detvm::Opcode::CALL:
+        inst.a = 0xFF; // patched by linker
+        inst.b = 0;    // argc placeholder
+        inst.c = 0;    // locals placeholder
+        break;
+
+    case detvm::Opcode::JMP:
+        inst.a = 0xFF;
+        inst.b = inst.c = 0;
+        break;
+
+    case detvm::Opcode::JZ:
+    case detvm::Opcode::JNZ:
+    case detvm::Opcode::JL:
+    case detvm::Opcode::JG:
+        inst.a = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("Global jump condition must be global (%rN)");
+        inst.b = 0xFF; // unresolved label
+        inst.c = 0;
+        break;
+
+    case detvm::Opcode::LOADARG:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'l') throw std::runtime_error("Argument must be loaded into local (%lN)");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'a') throw std::runtime_error("LOADARG source must be argument register (%aN)");
+        inst.c = 0;
+        break;
+
+    case detvm::Opcode::LOADP:
+        inst.a = parseReg(dst, regtype);
+        if (regtype != 'p') throw std::runtime_error("LOADP destination must be parameter register (%pN)");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'r') throw std::runtime_error("LOADP source must be global register(%rN), did you mean LOADLP?");
+        inst.c = 0;
+        break;
+
+    case detvm::Opcode::LOADLP:
+        inst.a = parseReg(dst, regtype);
+        if(regtype != 'p') throw std::runtime_error("LOADLP destination must be parameter register (%pN)");
+        inst.b = parseReg(tokens[0], regtype);
+        if (regtype != 'l') throw std::runtime_error("LOADLP source must be local register(%lN)");
+        inst.c = 0;
+        break;
+
+    default: break;
+}
     return inst;
 }
 

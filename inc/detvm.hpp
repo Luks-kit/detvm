@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <array>
 #include <variant>
 #include <string>
 #include <memory>
@@ -7,6 +8,7 @@
 #include <unordered_map>
 #include <iostream>
 #include "ops.hpp"
+#include "reader.hpp"
 
 namespace detvm {
 
@@ -39,22 +41,27 @@ struct Value {
 
 struct Instruction {
     Opcode opcode;
-    uint8_t a = 0;
-    uint8_t b = 0;
-    uint8_t c = 0;
+    uint16_t a = 0;
+    uint16_t b = 0;
+    uint16_t c = 0;
 };
 
 struct Frame {
     std::vector<Value> locals;
+    std::vector<Value> args;
     size_t return_pc = 0;
-    size_t base = 0; // base register offset
 };
+
+
+
 
 class VM {
 public:
     std::vector<Instruction> code;
     std::vector<Value> regs;
+    std::vector<Value> params;
     std::stack<Frame> callstack;
+    std::vector<Value> constant_pool;
     size_t pc = 0;
 
     VM(size_t reg_count = 8);
@@ -62,13 +69,16 @@ public:
     void run();
     void step();
     void dispatch(const Instruction& inst);
-    
+    void loadProgram(const std::vector<uint8_t>& data);
+
 private:
     using OpFn = void(VM::*)(const Instruction&);
     std::unordered_map<Opcode, OpFn> op_table;
+    std::array<OpFn, 0x100> dispatch_table{};
 
-
+    const uint64_t CURRENT_VM_VERSION = 1;
     void setupDispatchTable();
+    void setupOpTable();
 
     // Essential opcode functions
     void op_loadc(const Instruction&);
@@ -112,6 +122,37 @@ private:
     void op_view(const Instruction&);
     void op_edit(const Instruction&);
     void op_raiidrop(const Instruction&);
+
+
+    void op_mov_local(const Instruction&);
+    void op_add_local(const Instruction&);
+    void op_sub_local(const Instruction&);
+    void op_mul_local(const Instruction&);
+    void op_div_local(const Instruction&);
+    void op_neg_local(const Instruction&);
+    void op_cmp_local(const Instruction&);
+    void op_not_local(const Instruction&);
+    void op_and_local(const Instruction&);
+    void op_or_local(const Instruction&);
+
+    void op_jz_local(const Instruction&);
+    void op_jnz_local(const Instruction&);
+    void op_jl_local(const Instruction&);
+    void op_jg_local(const Instruction&);
+
+    void op_loadc_local(const Instruction&);
+    void op_load_arg(const Instruction&);
+    void op_load_param(const Instruction&);
+    void op_load_paraml(const Instruction&);
+
 };
 
 } // namespace detvm
+
+
+
+namespace detvm::assembler {
+
+std::vector<uint8_t> readFile(const std::string& path);
+
+}

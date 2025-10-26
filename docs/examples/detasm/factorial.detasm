@@ -1,0 +1,75 @@
+CALL main
+
+HALT
+
+; factorial function in DETASM
+
+; computes n! iteratively
+
+.func factorial
+.params 1           ; one argument (n)
+param n
+.locals 3           ; locals: n_copy, result, counter
+var n_copy
+var result
+var counter
+
+    ; copy argument into n_copy
+    STOREL %r0 -> n_copy
+
+    ; initialize result = 1
+
+    LOADC 1 -> %r1
+    STOREL %r1 -> result
+
+    ; initialize counter = 1
+    STOREL %r1 -> counter
+
+
+.label loop_start
+
+    ; if counter > n_copy, jump to loop_end
+    LOADL counter -> %r2
+    LOADL n_copy -> %r3
+    CMP %r2, %r3 -> %r4
+    JG %r4, loop_end
+
+
+    ; result *= counter
+    LOADL result -> %r2
+    LOADL counter -> %r3
+    MUL %r2, %r3 -> %r2
+    STOREL %r2 -> result
+
+    ; counter += 1
+    LOADL counter -> %r2
+    LOADC 1 -> %r3
+    ADD %r2, %r3 -> %r2
+    STOREL %r2 -> counter
+    JMP loop_start
+
+.label loop_end
+    ; return result
+    LOADL result -> %r0
+    RET result
+.end
+
+; entry point function
+
+.func main
+.params 0
+.locals 1
+var result
+
+    ; set up argument for factorial(5)
+    LOADC 5 -> %r0
+    CALL factorial
+    ; print result
+    PRINT %r0
+
+    ; set up argument for factorial(8)
+    LOADC 8 -> %r0
+    CALL factorial
+    PRINT %r0
+    RET result
+.end

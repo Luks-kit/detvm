@@ -7,13 +7,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Source files
 add_executable(detasm
-    src/main.cpp
+    src/asmmain.cpp
     src/assembler.cpp
-    src/linker.cpp
     src/helpers.cpp
 )
 
-target_include_directories(detasm PRIVATE inc)
+target_include_directories(detasm PRIVATE ../inc)
+
+add_executable(detld
+    src/ldmain.cpp
+    src/linker.cpp
+    src/reader.cpp
+)
+
+target_include_directories(detld PRIVATE ../inc)
+
 
 # --- Disassembler (optional tool)
 add_executable(detdisasm
@@ -21,4 +29,4 @@ add_executable(detdisasm
     src/helpers.cpp
 )
 
-target_include_directories(detdisasm PRIVATE inc)
+target_include_directories(detdisasm PRIVATE ../inc)

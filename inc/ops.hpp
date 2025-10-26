@@ -3,11 +3,12 @@
 
 namespace detvm {
 
-enum class Opcode : uint8_t {
+enum class Opcode : uint16_t {
     // Data & Arithmetic
     LOADC   = 0x01, // A=reg, B=const
     LOADL   = 0x02, // A=reg, B=local
     STOREL  = 0x03, // A=local, B=reg
+
     MOV     = 0x04, // A=dst, B=src
     ADD     = 0x05, // A=dst, B=src1, C=src2
     SUB     = 0x06, // A=dst, B=src1, C=src2
@@ -25,12 +26,29 @@ enum class Opcode : uint8_t {
     JNZ     = 0x12, // A=cond, B=label
     JL      = 0x13, // A=cond, B=label
     JG      = 0x14, // A=cond, B=label
+    JLZ      = 0x15, // A=cond, B=label
+    JLNZ     = 0x16, // A=cond, B=label
+    JLL      = 0x17, // A=cond, B=label
+    JLG      = 0x18, // A=cond, B=label
 
     // Function Call & Stack
     CALL    = 0x20, // A=func_index, B=argc
     RET     = 0x21, // A=reg
     ENTER   = 0x22, // A=local_count
     LEAVE   = 0x23, // —
+
+    ADDL    = 0x24, // A=dst, B=localsrc1, C=localsrc2
+    SUBL    = 0x25, // A=dst, B=localsrc1, C=localsrc2
+    MULL    = 0x26, // A=dst, B=localsrc1, C=localsrc2
+    DIVL    = 0x27, // A=dst, B=localsrc1, C=localsrc2
+    CMPL    = 0x28, // A=dst, B=localsrc1, C=localsrc2     
+    NEGL    = 0x29, // A=dst, B=localsrc  
+    NOTL    = 0x2A, // A=dst, B=localsrc 
+    ANDL    = 0x2B, //A=dst, B=localsrc1, C=localsrc2
+    ORL     = 0x2C, //A=dst, B=localsrc1, C=localsrc2
+    MOVL    = 0x2D, //A = dst, B = src
+    LOADCL  = 0x2E, //A=dst, B=constant pool index
+    LOADARG = 0x2F, //A=localdest, B=args src
 
     // Array & Memory
     NEWARR  = 0x30, // A=dst, B=elem_type, C=len
@@ -48,7 +66,8 @@ enum class Opcode : uint8_t {
     NOP     = 0x50, // do nothing
     PRINT   = 0x51, // print reg (debug only)
     HALT    = 0x52, // stop execution
-
+    LOADP   = 0x53, // load parameter 
+    LOADLP  = 0x54, // load parameter from local
     // Ownership & Borrowing
     OWN     = 0x60, // dest, type_id, flags
     MOVE    = 0x61, // dest, src, flags=0

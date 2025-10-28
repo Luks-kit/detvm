@@ -27,7 +27,7 @@ void linkLabels(
 
         switch (u.op) {
             case detvm::Opcode::JMP:
-                inst.a = static_cast<uint8_t>(target_pc);
+                inst.a = static_cast<uint16_t>(target_pc);
                 break;
 
             case detvm::Opcode::JZ:
@@ -38,13 +38,13 @@ void linkLabels(
             case detvm::Opcode::JLNZ:
             case detvm::Opcode::JLL:
             case detvm::Opcode::JLG:
-                inst.b = static_cast<uint8_t>(target_pc);
+                inst.b = static_cast<uint16_t>(target_pc);
                 break;
 
             case detvm::Opcode::CALL: {
                 // automatic argc and local count
                 const auto& f = it_func->second;
-                inst.a = static_cast<uint8_t>(target_pc);
+                inst.a = static_cast<uint16_t>(target_pc);
                 inst.b = f.params; // argument count
                 inst.c = f.locals; // local variable count
                 break;
@@ -60,7 +60,7 @@ void linkLabels(
 }
 
 
-assembler::AssemblerResult linker::linkObjects(const std::vector<assembler::AssemblerResult>& objects) {
+assembler::AssemblerResult linkObjects(const std::vector<assembler::AssemblerResult>& objects) {
     assembler::AssemblerResult linked;
 
     uint32_t code_offset = 0;
@@ -136,7 +136,7 @@ assembler::AssemblerResult linker::linkObjects(const std::vector<assembler::Asse
     return linked;
 }
 
-void linker::writeProgramBinary(const std::string& path, const assembler::AssemblerResult& result) {
+void writeProgramBinary(const std::string& path, const assembler::AssemblerResult& result) {
     std::ofstream out(path, std::ios::binary);
     if (!out) throw std::runtime_error("Failed to open output file: " + path);
 
@@ -156,7 +156,7 @@ void linker::writeProgramBinary(const std::string& path, const assembler::Assemb
 
         switch (entry.type) {
             case ConstType::INT: {
-                int64_t val = std::get<int64_t>(entry.value);
+                int32_t val = std::get<int32_t>(entry.value);
                 size_t sz = sizeof(val);
                 out.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
                 out.write(reinterpret_cast<const char*>(&val), sizeof(val));
@@ -176,6 +176,13 @@ void linker::writeProgramBinary(const std::string& path, const assembler::Assemb
                 out.write(s.data(), sz);
                 break;
             }
+            case ConstType::CHAR: {
+                char val = std::get<char>(entry.value);
+                size_t sz = sizeof(val);
+                out.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
+                out.write(reinterpret_cast<const char*>(&val), sizeof(val));
+                break;
+            }
         }
     }
 
@@ -186,9 +193,9 @@ void linker::writeProgramBinary(const std::string& path, const assembler::Assemb
 
     for (auto& inst : result.code) {
         out.write(reinterpret_cast<const char*>(&inst.opcode), sizeof(inst.opcode));
-        out.write(reinterpret_cast<const char*>(&inst.a), 1);
-        out.write(reinterpret_cast<const char*>(&inst.b), 1);
-        out.write(reinterpret_cast<const char*>(&inst.c), 1);
+        out.write(reinterpret_cast<const char*>(&inst.a), 2);
+        out.write(reinterpret_cast<const char*>(&inst.b), 2);
+        out.write(reinterpret_cast<const char*>(&inst.c), 2);
     }
 
     out.close();

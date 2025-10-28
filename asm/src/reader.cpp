@@ -38,7 +38,7 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
         in.read(reinterpret_cast<char*>(&type), 1);
         switch (static_cast<ConstType>(type)) {
             case ConstType::INT: {
-                int64_t val;
+                int32_t val;
                 in.read(reinterpret_cast<char*>(&val), sizeof(val));
                 result.pool.addInt(val);
                 break;
@@ -55,6 +55,12 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
                 std::string s(len, '\0');
                 in.read(s.data(), len);
                 result.pool.addString(s);
+                break;
+            }
+            case ConstType::CHAR: {
+                char val;
+                in.read(reinterpret_cast<char*>(&val), sizeof(val));
+                result.pool.addChar(val);
                 break;
             }
             default:
@@ -117,7 +123,7 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
         in.read(label.data(), label_size);
 
         u.inst_index = inst_idx;
-        u.op = static_cast<detvm::Opcode>(op);
+        u.op = static_cast<Opcode>(op);
         u.target_in_b = target_in_b != 0;
         u.label = std::move(label);
 
@@ -134,7 +140,7 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
 
     result.code.resize(code_count);
     for (uint32_t i = 0; i < code_count; ++i) {
-        in.read(reinterpret_cast<char*>(&result.code[i]), sizeof(detvm::Instruction));
+        in.read(reinterpret_cast<char*>(&result.code[i]), sizeof(Instruction));
     }
 
     return result;

@@ -161,7 +161,7 @@
     void VM::run() {
         pc = 0;
         while (pc < code.size()) {
-            dispatch(code[pc]);
+            step();
         }
     }
 

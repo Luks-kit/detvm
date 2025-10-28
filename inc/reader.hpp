@@ -31,7 +31,7 @@ public:
     void expect(const char* magic, std::size_t len) {
         std::string s = readString(len);
         if (s != std::string(magic, len))
-            throw std::runtime_error("Invalid file magic: expected " + std::string(magic));
+            throw std::runtime_error("Invalid file magic: expected " + std::string(magic) + " but got" + s + "\n");
     }
 
     bool eof() const { return pos_ >= data_.size(); }

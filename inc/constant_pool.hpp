@@ -19,17 +19,19 @@ enum class ConstType : uint8_t {
 
 struct ConstantPoolEntry {
     ConstType type;
-    std::variant<int64_t, double, std::string> value;
+    std::variant<int32_t, double, std::string, char> value;
 
     bool operator==(const ConstantPoolEntry& other) const noexcept {
         if (type != other.type) return false;
         switch (type) {
             case ConstType::INT:
-                return std::get<int64_t>(value) == std::get<int64_t>(other.value);
+                return std::get<int32_t>(value) == std::get<int32_t>(other.value);
             case ConstType::DOUBLE:
                 return std::get<double>(value) == std::get<double>(other.value);
             case ConstType::STRING:
                 return std::get<std::string>(value) == std::get<std::string>(other.value);
+            case ConstType::CHAR:
+                return std::get<char>(value) == std::get<char>(other.value);
             default:
                 return false;
         }
@@ -41,9 +43,10 @@ struct ConstantPool {
     std::unordered_map<std::string, size_t> string_to_index;
 
     // === Adding constants ===
-    size_t addInt(int64_t val);
+    size_t addInt(int32_t val);
     size_t addDouble(double val);
     size_t addString(const std::string& s);
+    size_t addChar(char c);
 
     size_t add(const ConstantPoolEntry& e);
     // === Helpers ===

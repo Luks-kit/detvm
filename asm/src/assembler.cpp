@@ -146,7 +146,7 @@ void writeObject(const std::string& path, const AssemblerResult& result) {
 
         switch (entry.type) {
             case ConstType::INT: {
-                int64_t val = std::get<int64_t>(entry.value);
+                int32_t val = std::get<int32_t>(entry.value);
                 out.write(reinterpret_cast<const char*>(&val), sizeof(val));
                 break;
             }
@@ -156,7 +156,7 @@ void writeObject(const std::string& path, const AssemblerResult& result) {
                 break;
             }
             case ConstType::STRING: {
-                uint32_t len = static_cast<uint32_t>(std::get<std::string>(entry.value).size());
+                size_t len = static_cast<size_t>(std::get<std::string>(entry.value).size());
                 out.write(reinterpret_cast<const char*>(&len), sizeof(len));
                 out.write(std::get<std::string>(entry.value).data(), len);
                 break;
@@ -211,8 +211,8 @@ void writeObject(const std::string& path, const AssemblerResult& result) {
     uint32_t code_count = static_cast<uint32_t>(result.code.size());
     out.write(reinterpret_cast<const char*>(&code_count), sizeof(code_count));
 
-    for (auto& inst : result.code) {
-        out.write(reinterpret_cast<const char*>(&inst), sizeof(detvm::Instruction));
+    for (const auto& inst : result.code) {
+        out.write(reinterpret_cast<const char*>(&inst), sizeof(Instruction));
     }
 
     out.close();

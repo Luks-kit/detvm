@@ -3,7 +3,7 @@
 
 namespace detvm {
 
-size_t ConstantPool::addInt(int64_t val) {
+size_t ConstantPool::addInt(int32_t val) {
     entries.push_back({ConstType::INT, val});
     return entries.size() - 1;
 }
@@ -20,6 +20,11 @@ size_t ConstantPool::addString(const std::string& s) {
     size_t idx = entries.size() - 1;
     string_to_index[s] = idx;
     return idx;
+}
+
+size_t ConstantPool::addChar(char c) {
+    entries.push_back({ConstType::CHAR, c});
+    return entries.size() -1;
 }
 
 bool ConstantPool::isInt(const std::string& s) {

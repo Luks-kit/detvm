@@ -24,6 +24,12 @@ int main(int argc, char** argv) {
         std::string output_path = argv[argc - 1];
 
         auto linked = linker::linkObjects(objects);
+        linker::linkLabels(
+        linked.code,
+        linked.label_to_pc,
+        linked.unresolved,
+        linked.funcs
+        );
         linker::writeProgramBinary(output_path, linked);
 
         std::cout << "Linked " << (argc - 2) << " objects -> " << output_path << "\n";

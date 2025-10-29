@@ -31,7 +31,6 @@ target_include_directories(detld PRIVATE ../inc)
 # --- Disassembler (optional tool)
 add_executable(detdisasm
     src/disasm.cpp
-    src/helpers.cpp
     src/constant_pool.cpp
 )
 

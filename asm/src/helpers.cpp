@@ -86,13 +86,24 @@ detvm::Instruction parseInstruction(const std::string& line, ConstantPool& pool)
     std::string rest;
     std::getline(iss, rest);
     std::vector<std::string> tokens;
-    std::istringstream opss(rest);
-    std::string tok;
-    while (std::getline(opss, tok, ',')) tokens.push_back(trim(tok));
 
     detvm::Opcode op = mnemonicToOpcode(mnemonic);
     detvm::Instruction inst{};
     inst.opcode = op;
+    
+    if (op == detvm::Opcode::LOADC) {
+        tokens.push_back(rest); // tokens[0] now holds ' "Hello, World!" '
+    } else {
+        // For all other instructions (ADD, CMP, etc.), arguments are expected to be comma-separated.
+        std::istringstream opss(rest);
+        std::string tok;
+        while (std::getline(opss, tok, ',')) {
+            tokens.push_back(trim(tok));
+        }
+    }
+
+
+
 
    char regtype;
 

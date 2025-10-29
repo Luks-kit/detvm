@@ -50,7 +50,7 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
                 break;
             }
             case ConstType::STRING: {
-                uint32_t len;
+                uint64_t len;
                 in.read(reinterpret_cast<char*>(&len), sizeof(len));
                 std::string s(len, '\0');
                 in.read(s.data(), len);
@@ -64,7 +64,7 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
                 break;
             }
             default:
-                throw std::runtime_error("Unknown constant pool type");
+                throw std::runtime_error("Unknown constant pool type: " + type);
         }
     }
 

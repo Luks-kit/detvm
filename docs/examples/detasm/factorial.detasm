@@ -1,4 +1,6 @@
 CALL main
+LOADC "Hello World!" -> %r2
+PRINT %r2
 HALT
 
 ; factorial function in DETASM
@@ -37,7 +39,7 @@ var flag
     ; counter += 1
     LOADCL 1 -> flag
     ADDL flag, counter -> counter
-    
+
     JMP loop_start
 
 .label loop_end

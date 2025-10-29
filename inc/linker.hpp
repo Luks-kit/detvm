@@ -28,10 +28,10 @@ assembler::AssemblerResult readObject(const std::string& path);
 void linkLabels(std::vector<detvm::Instruction>& code,
                 const std::unordered_map<std::string, size_t>& label_to_pc,
                 const std::vector<assembler::UnresolvedJump>& unresolved,
-                const std::unordered_map<std::string, FunctionEntry>& funcs);
+                const std::unordered_map<std::string, assembler::Function>& funcs);
 
 assembler::AssemblerResult linkObjects(const std::vector<assembler::AssemblerResult>& objects);
 
-void writeProgramBinary(const std::string& path, const assembler::AssemblerResult& result);
+
 
 } // namespace detvm::linker

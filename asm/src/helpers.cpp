@@ -62,7 +62,7 @@ detvm::Opcode mnemonicToOpcode(const std::string& mnemonic) {
     {"JLZ", detvm::Opcode::JLZ},          {"JLNZ", detvm::Opcode::JLNZ},      {"JLL", detvm::Opcode::JLL}, 
     {"JLG", detvm::Opcode::JLG},          {"LOADP", detvm::Opcode::LOADP},    {"LOADLP", detvm::Opcode::LOADLP},
     {"CALL",     detvm::Opcode::CALL},    {"RET",     detvm::Opcode::RET},    {"PRINT",   detvm::Opcode::PRINT},
-    {"RAIIDROP", detvm::Opcode::RAIIDROP},{"HALT",    detvm::Opcode::HALT}
+    {"RAIIDROP", detvm::Opcode::RAIIDROP},{"HALT",    detvm::Opcode::HALT},   {"LOADARG", detvm::Opcode::LOADARG}
 };
 
     auto it = table.find(mnemonic);

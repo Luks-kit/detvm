@@ -101,6 +101,8 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
         result.funcs[name] = fn;
     }
 
+
+
     // === UNRESOLVED ENTRIES ===
     char unrs_tag[4];
     in.read(unrs_tag, 4);
@@ -130,6 +132,26 @@ assembler::AssemblerResult linker::readObject(const std::string& path) {
         result.unresolved.push_back(u);
     }
 
+    // === LABELS ===
+
+    char lbls_tag[4];
+    in.read(lbls_tag, 4);
+    if (std::string(lbls_tag, 4) != "LBLS") throw std::runtime_error("Expected LBLS section");
+
+    uint32_t label_count;
+    in.read(reinterpret_cast<char*>(&label_count), sizeof(label_count));
+
+    for (uint32_t i = 0; i < label_count; ++i) {
+        uint32_t label_len;
+        uint32_t target_pc;
+
+        in.read(reinterpret_cast<char*>(&label_len), sizeof(label_len));
+        std::string label(label_len, '\0');
+        in.read(label.data(), label_len);
+        in.read(reinterpret_cast<char*>(&target_pc), sizeof(target_pc));
+
+        result.label_to_pc[std::move(label)] = target_pc;
+    }
     // === CODE ===
     char code_tag[4];
     in.read(code_tag, 4);

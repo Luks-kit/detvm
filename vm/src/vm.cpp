@@ -2,7 +2,7 @@
 
     namespace detvm {
 
-    VM::VM(size_t reg_count) : regs(reg_count) {
+    VM::VM(size_t reg_count) : regs(reg_count), params(reg_count) {
         setupDispatchTable();
     }
 
@@ -161,7 +161,8 @@
     void VM::run() {
         pc = 0;
         while (pc < code.size()) {
-            step();
+            const auto& inst = code[pc];
+            dispatch(inst);
         }
     }
 

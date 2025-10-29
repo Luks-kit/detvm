@@ -8,7 +8,7 @@ void linkLabels(
     std::vector<detvm::Instruction>& code,
     const std::unordered_map<std::string, size_t>& label_to_pc,
     const std::vector<detvm::assembler::UnresolvedJump>& unresolved,
-    const std::unordered_map<std::string, FunctionEntry>& funcs)
+    const std::unordered_map<std::string, assembler::Function>& funcs)
 {
     for (const auto& u : unresolved) {
         auto it_label = label_to_pc.find(u.label);
@@ -62,10 +62,8 @@ void linkLabels(
 
 assembler::AssemblerResult linkObjects(const std::vector<assembler::AssemblerResult>& objects) {
     assembler::AssemblerResult linked;
-
     uint32_t code_offset = 0;
-    std::unordered_map<std::string, uint32_t> global_labels;
-
+    std::unordered_map<std::string, size_t> global_labels;
     // Constant pool remap: for each object, store mapping old_idx → new_idx
     std::vector<std::vector<uint32_t>> const_remap(objects.size());
 
@@ -110,6 +108,8 @@ assembler::AssemblerResult linkObjects(const std::vector<assembler::AssemblerRes
         code_offset = static_cast<uint32_t>(linked.code.size());
     }
 
+    linked.label_to_pc = std::move(global_labels);
+
     // === PASS 3: Merge unresolved references ===
     for (size_t i = 0; i < objects.size(); ++i) {
         const auto& obj = objects[i];
@@ -118,87 +118,15 @@ assembler::AssemblerResult linkObjects(const std::vector<assembler::AssemblerRes
             obj_code_offset += static_cast<uint32_t>(objects[j].code.size());
 
         for (auto u : obj.unresolved) {
+            // Offset the instruction index relative to the start of the linked code
             u.inst_index += obj_code_offset;
-
-            auto it = global_labels.find(u.label);
-            if (it != global_labels.end()) {
-                // Resolved immediately
-                uint32_t target_pc = it->second;
-                if (u.target_in_b) linked.code[u.inst_index].b = target_pc;
-                else linked.code[u.inst_index].a = target_pc;
-            } else {
-                // Keep unresolved
-                linked.unresolved.push_back(u);
-            }
+            
+            // Pass the reference through to the final resolution pass (linkLabels)
+            linked.unresolved.push_back(u);
         }
     }
 
     return linked;
-}
-
-void writeProgramBinary(const std::string& path, const assembler::AssemblerResult& result) {
-    std::ofstream out(path, std::ios::binary);
-    if (!out) throw std::runtime_error("Failed to open output file: " + path);
-
-    // === HEADER ===
-    out.write("DTVM", 4);
-    uint64_t version = 1;
-    out.write(reinterpret_cast<const char*>(&version), sizeof(version));
-
-    // === CONSTANT POOL ===
-    out.write("POOL", 4);
-    size_t pool_size = result.pool.entries.size();
-    out.write(reinterpret_cast<const char*>(&pool_size), sizeof(pool_size));
-
-    for (auto& entry : result.pool.entries) {
-        uint8_t type = static_cast<uint8_t>(entry.type);
-        out.write(reinterpret_cast<const char*>(&type), 1);
-
-        switch (entry.type) {
-            case ConstType::INT: {
-                int32_t val = std::get<int32_t>(entry.value);
-                size_t sz = sizeof(val);
-                out.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
-                out.write(reinterpret_cast<const char*>(&val), sizeof(val));
-                break;
-            }
-            case ConstType::DOUBLE: {
-                double val = std::get<double>(entry.value);
-                size_t sz = sizeof(val);
-                out.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
-                out.write(reinterpret_cast<const char*>(&val), sizeof(val));
-                break;
-            }
-            case ConstType::STRING: {
-                const std::string& s = std::get<std::string>(entry.value);
-                size_t sz = s.size();
-                out.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
-                out.write(s.data(), sz);
-                break;
-            }
-            case ConstType::CHAR: {
-                char val = std::get<char>(entry.value);
-                size_t sz = sizeof(val);
-                out.write(reinterpret_cast<const char*>(&sz), sizeof(sz));
-                out.write(reinterpret_cast<const char*>(&val), sizeof(val));
-                break;
-            }
-        }
-    }
-
-    // === CODE SECTION ===
-    out.write("TEXT", 4);
-    size_t code_count = result.code.size();
-    out.write(reinterpret_cast<const char*>(&code_count), sizeof(code_count));
-
-    for (auto& inst : result.code) {
-        out.write(reinterpret_cast<const char*>(&inst.opcode), sizeof(inst.opcode));
-        out.write(reinterpret_cast<const char*>(&inst.a), 2);
-        out.write(reinterpret_cast<const char*>(&inst.b), 2);
-        out.write(reinterpret_cast<const char*>(&inst.c), 2);
-    }
-
-    out.close();
 }
 
 

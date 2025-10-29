@@ -10,8 +10,6 @@
 namespace detvm::assembler {
 
 
-
-
 AssemblerResult assembleFirstPass(const std::vector<std::string>& lines) {
     AssemblerResult result;
     Function* current_func = nullptr;
@@ -124,98 +122,5 @@ AssemblerResult assembleFirstPass(const std::vector<std::string>& lines) {
 }
 
 
-
-void writeObject(const std::string& path, const AssemblerResult& result) {
-    std::ofstream out(path, std::ios::binary);
-    if (!out) throw std::runtime_error("Failed to open output file: " + path);
-
-    // === HEADER ===
-    const uint32_t MAGIC = 0x44544F42; // "DTOB"
-    const uint16_t VERSION = 1;
-    out.write(reinterpret_cast<const char*>(&MAGIC), sizeof(MAGIC));
-    out.write(reinterpret_cast<const char*>(&VERSION), sizeof(VERSION));
-
-    // === CONSTANT POOL ===
-    out.write("POOL", 4);
-    uint32_t const_count = result.pool.entries.size();
-    out.write(reinterpret_cast<const char*>(&const_count), sizeof(const_count));
-
-    for (auto& entry : result.pool.entries) {
-        uint8_t type = static_cast<uint8_t>(entry.type);
-        out.write(reinterpret_cast<const char*>(&type), 1);
-
-        switch (entry.type) {
-            case ConstType::INT: {
-                int32_t val = std::get<int32_t>(entry.value);
-                out.write(reinterpret_cast<const char*>(&val), sizeof(val));
-                break;
-            }
-            case ConstType::DOUBLE: {
-                double val = std::get<double>(entry.value);
-                out.write(reinterpret_cast<const char*>(&val), sizeof(val));
-                break;
-            }
-            case ConstType::STRING: {
-                size_t len = static_cast<size_t>(std::get<std::string>(entry.value).size());
-                out.write(reinterpret_cast<const char*>(&len), sizeof(len));
-                out.write(std::get<std::string>(entry.value).data(), len);
-                break;
-            }
-        }
-    }
-
-    out.write("FUNC", 4);
-    // === FUNCTION TABLE ===
-    uint32_t func_count = result.funcs.size();
-    out.write(reinterpret_cast<const char*>(&func_count), sizeof(func_count));
-
-    for (auto& [name, fn] : result.funcs) {
-        uint32_t name_len = static_cast<uint32_t>(name.size());
-        out.write(reinterpret_cast<const char*>(&name_len), sizeof(name_len));
-        out.write(name.data(), name_len);
-
-        uint16_t params = fn.params;
-        uint16_t locals = fn.locals;
-        uint32_t offset = static_cast<uint32_t>(fn.pc_start);
-        uint32_t size = static_cast<uint32_t>(fn.pc_end - fn.pc_start);
-
-
-        out.write(reinterpret_cast<const char*>(&params), sizeof(params));
-        out.write(reinterpret_cast<const char*>(&locals), sizeof(locals));
-        out.write(reinterpret_cast<const char*>(&offset), sizeof(offset));
-        out.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    }
-
-    // === UNRESOLVED ENTRIES ===
-    out.write("UNRS", 4);
-    uint32_t unresolved_count = static_cast<uint32_t>(result.unresolved.size());
-    out.write(reinterpret_cast<const char*>(&unresolved_count), sizeof(unresolved_count));
-
-    for (auto& u : result.unresolved) {
-        uint32_t inst_idx = static_cast<uint32_t>(u.inst_index);
-        uint8_t op = static_cast<uint8_t>(u.op);
-        uint8_t target_in_b = u.target_in_b ? 1 : 0;
-        uint32_t label_size = u.label.size();
-        const char* label_name = u.label.data(); // store label in a string
-
-
-        out.write(reinterpret_cast<const char*>(&inst_idx), sizeof(inst_idx));
-        out.write(reinterpret_cast<const char*>(&op), sizeof(op));
-        out.write(reinterpret_cast<const char*>(&target_in_b), sizeof(target_in_b));
-        out.write(reinterpret_cast<const char*>(&label_size), sizeof(label_size));
-        out.write(label_name, label_size);
-    }
-
-    // === CODE ===
-    out.write("CODE", 4);
-    uint32_t code_count = static_cast<uint32_t>(result.code.size());
-    out.write(reinterpret_cast<const char*>(&code_count), sizeof(code_count));
-
-    for (const auto& inst : result.code) {
-        out.write(reinterpret_cast<const char*>(&inst), sizeof(Instruction));
-    }
-
-    out.close();
-}
 
 } // namespace detvm::assembler

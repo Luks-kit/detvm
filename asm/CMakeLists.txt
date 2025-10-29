@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(detasm
     src/asmmain.cpp
     src/assembler.cpp
+    src/writer.cpp
     src/helpers.cpp
     src/constant_pool.cpp
 )
@@ -19,6 +20,7 @@ target_include_directories(detasm PRIVATE ../inc)
 add_executable(detld
     src/ldmain.cpp
     src/linker.cpp
+    src/writer.cpp
     src/reader.cpp
     src/constant_pool.cpp
 )

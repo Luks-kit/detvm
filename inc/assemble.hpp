@@ -37,12 +37,14 @@ struct AssemblerResult {
     std::unordered_map<std::string, size_t> label_to_pc;
     std::unordered_map<std::string, Function> funcs;
     
-
 };
+
+
 
 
 // first pass: parse lines, record labels and unresolved jumps
 AssemblerResult assembleFirstPass(const std::vector<std::string>& lines);
 
 void writeObject(const std::string& path, const AssemblerResult& result);
+
 } // namespace detvm::assembler

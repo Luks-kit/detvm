@@ -6,6 +6,7 @@ namespace detvm {
 void VM::op_loadc(const Instruction& i) { 
     Value val = constant_pool[i.b];
     regs[i.a] = val;
+    pc++;
 }
 
 // Load local variable (Frame.locals) into a global register
@@ -179,10 +180,10 @@ void VM::op_call(const Instruction& i) {
     // push new frame
     op_enter({Opcode::ENTER, 0 , argc, localc}); // argc is passed as op_enter's i.a
 
-    // Copy arguments into frame locals
+    // Copy arguments into frame arguments
     Frame& f = callstack.top();
     for (size_t j = 0; j < argc; ++j) {
-        f.locals[j] = params[j];  // first `argc` locals are parameters
+        f.args[j] = params[j];  // first `argc` locals are parameters
     }
     
     // jump to function start
@@ -208,8 +209,10 @@ void VM::op_ret(const Instruction& i) {
     op_leave({});
 
     // store return value into fixed return register
-    params[RETURN_REG] = retVal;
+    regs[RETURN_REG] = retVal;
 }
+
+
 
 void VM::op_mov_local(const Instruction& i) {
     auto& frame = callstack.top();
@@ -334,7 +337,7 @@ void VM::op_halt(const Instruction&) {
     pc = code.size(); // terminate loop
 }
 
-// === Ownership Skeletons ===
+
 // === Ownership System ===
 
 void VM::op_own(const Instruction& i) {

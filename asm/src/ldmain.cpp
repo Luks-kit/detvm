@@ -1,5 +1,6 @@
 #include "linker.hpp"
 #include "reader.hpp"
+#include "writer.hpp"
 #include <iostream>
 #include <filesystem>
 
@@ -30,7 +31,7 @@ int main(int argc, char** argv) {
         linked.unresolved,
         linked.funcs
         );
-        linker::writeProgramBinary(output_path, linked);
+        Writer::writeProgramBinary(output_path, linked);
 
         std::cout << "Linked " << (argc - 2) << " objects -> " << output_path << "\n";
     } catch (const std::exception& e) {

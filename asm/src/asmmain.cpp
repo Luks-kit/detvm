@@ -1,5 +1,5 @@
 #include "assemble.hpp"
-
+#include "writer.hpp"
 #include <iostream>
 #include <filesystem>
 
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 
         auto result = assembler::assembleFirstPass(lines); // your assembler pipeline
 
-       assembler::writeObject(output_path, result);
+       Writer::writeObject(output_path, result);
         std::cout << " Assembled " << input_path << " -> " << output_path << "\n";
         
     } catch (const std::exception& e) {

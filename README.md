@@ -26,11 +26,11 @@ cmake --build build
 
 ```
 
-You’ll end up with three binaries:
-- `detasm` — compiler / assembler
+You’ll end up with four binaries:
+- `detasm` —  assembler
 - `detdisasm` — disassembler for debugging purposes 
 - `detvm` — virtual machine runtime
-
+- `detld` – linker for deto files
 ---
 
 ## 🚀 Usage

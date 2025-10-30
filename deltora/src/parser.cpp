@@ -73,8 +73,8 @@ Expr Parser::parseExpr(int prec) {
     return left;
 }
 
-Expr parsePrimary(Parser& P) {
-    const Token& t = P.advance();
+Expr Parser::parsePrimary() {
+    const Token& t = advance();
 
     switch (t.kind) {
         case TokenKind::Number:
@@ -82,8 +82,8 @@ Expr parsePrimary(Parser& P) {
         case TokenKind::Identifier:
             return make::ident(t.text);
         case TokenKind::LParen: {
-            Expr e = P.parseExpr();
-            if (!P.match(TokenKind::RParen))
+            Expr e = parseExpr();
+            if (!match(TokenKind::RParen))
                 throw std::runtime_error("Expected ')'");
             return e;
         }

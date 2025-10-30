@@ -1,2 +1,2 @@
-LOADC "Hello, World!" -> %r0
+LOADC Hello, World! -> %r0
 PRINT %r0

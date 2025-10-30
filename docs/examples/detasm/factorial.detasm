@@ -14,12 +14,8 @@ var flag
 
     ; copy argument into n_copy
     LOADARG n -> n_copy
-
-    ; initialize result = 1
-
+    ; initialize result and counter = 1
     LOADCL 1 -> result
-
-    ; initialize counter = 1
     LOADCL 1 -> counter
 
 

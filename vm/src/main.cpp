@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
 
     VM vm;
 
-    vm.loadProgram(detvm::assembler::readFile(filename));
+    vm.loadProgram(assembler::readFile(filename));
 
     vm.run();
 

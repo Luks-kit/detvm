@@ -28,18 +28,12 @@ size_t ConstantPool::addChar(char c) {
 }
 
 bool ConstantPool::isInt(const std::string& s) {
-     if (s.empty()) {
-            return false;
-        }
+     if (s.empty()) return false;
+        /* Handle optional sign*/
         size_t start_index = 0;
-        if (s[0] == '-' || s[0] == '+') { // Handle optional sign
-            start_index = 1;
-        }
-        for (size_t i = start_index; i < s.length(); ++i) {
-            if (!isdigit(s[i])) {
-                return false;
-            }
-        }
+        if (s[0] == '-' || s[0] == '+') start_index = 1;
+        for (size_t i = start_index; i < s.length(); ++i) if (!isdigit(s[i])) return false;
+        
         return true;
 }
 

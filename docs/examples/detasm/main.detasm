@@ -1,0 +1,26 @@
+CALL main 
+HALT
+
+; entry point function
+
+.func main
+.params 0
+.locals 1
+var result
+
+    ; set up argument for factorial(5)
+    LOADC 5 -> %r1
+    LOADP %r1 -> %p0
+    CALL factorial
+    ; print result
+    PRINT %r0
+
+    ; set up argument for factorial(8)
+    LOADC 8 -> %r1
+    LOADP %r1 -> %p0
+    CALL factorial
+    PRINT %r0
+    RET result
+.end
+
+; gonna see if this works...

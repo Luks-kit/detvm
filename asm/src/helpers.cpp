@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cctype>
 
+
 namespace detvm::assembler {
 
 std::string trim(const std::string& s) {
@@ -91,8 +92,8 @@ detvm::Instruction parseInstruction(const std::string& line, ConstantPool& pool)
     detvm::Instruction inst{};
     inst.opcode = op;
     
-    if (op == detvm::Opcode::LOADC) {
-        tokens.push_back(rest); // tokens[0] now holds ' "Hello, World!" '
+    if (op == detvm::Opcode::LOADC || op == detvm::Opcode::LOADCL) {
+        tokens.push_back(trim(rest)); // tokens[0] now holds ' "Hello, World!" '
     } else {
         // For all other instructions (ADD, CMP, etc.), arguments are expected to be comma-separated.
         std::istringstream opss(rest);

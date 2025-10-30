@@ -23,10 +23,28 @@ struct Value {
     Value(std::string v) : data(std::move(v)) {}
     Value(std::vector<Value> v) : data(std::move(v)) {}
 
-    int32_t asInt() const { return std::get<int32_t>(data); }
-    double asFloat() const { return std::get<double>(data); }
-    bool asBool() const { return std::get<bool>(data); }
-    const std::vector<Value>& asArray() const { return std::get<std::vector<Value>>(data); }
+    int32_t asInt() const {
+        if (std::holds_alternative<int32_t>(data)) return std::get<int32_t>(data);
+        if (std::holds_alternative<double>(data)) return static_cast<int32_t>(std::get<double>(data));
+        if (std::holds_alternative<bool>(data)) return std::get<bool>(data) ? 1 : 0;
+        throw std::runtime_error("Value is not numeric (int/bool/double)");
+    }
+
+    double asFloat() const {
+        if (std::holds_alternative<double>(data)) return std::get<double>(data);
+        if (std::holds_alternative<int32_t>(data)) return static_cast<double>(std::get<int32_t>(data));
+        if (std::holds_alternative<bool>(data)) return std::get<bool>(data) ? 1.0 : 0.0;
+        throw std::runtime_error("Value is not numeric (int/bool/double)");
+    }
+
+    bool asBool() const {
+        if (std::holds_alternative<bool>(data)) return std::get<bool>(data);
+        if (std::holds_alternative<int32_t>(data)) return std::get<int32_t>(data) != 0;
+        if (std::holds_alternative<double>(data)) return std::get<double>(data) != 0.0;
+        if (std::holds_alternative<std::string>(data)) return !std::get<std::string>(data).empty();
+        if (std::holds_alternative<std::vector<Value>>(data)) return !std::get<std::vector<Value>>(data).empty();
+        return false;
+    }
     std::vector<Value>& asArray() { return std::get<std::vector<Value>>(data); }
 
     std::string str() const {

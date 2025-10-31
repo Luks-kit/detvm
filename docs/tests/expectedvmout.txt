@@ -1,0 +1,4 @@
+120
+40320
+HALT encountered. Stopping VM.
+[vm] Execution complete.

@@ -1,0 +1,29 @@
+Header: DTVM (version 1)
+
+[Constant Pool] (3 entries)
+  #0 INT 5
+  #1 INT 8
+  #2 INT 1
+
+[Text Section] (21 instructions)
+   0: CALL  a=2  b=0  c=1
+   1: HALT  a=0  b=0  c=0
+   2: LOADC  a=1  b=0  c=0
+   3: LOADP  a=0  b=1  c=0
+   4: CALL  a=11  b=1  c=4
+   5: PRINT  a=0  b=0  c=0
+   6: LOADC  a=1  b=1  c=0
+   7: LOADP  a=0  b=1  c=0
+   8: CALL  a=11  b=1  c=4
+   9: PRINT  a=0  b=0  c=0
+  10: RET  a=0  b=0  c=0
+  11: LOADARG  a=0  b=0  c=0
+  12: LOADCL  a=1  b=2  c=0
+  13: LOADCL  a=2  b=2  c=0
+  14: CMPL  a=3  b=2  c=0
+  15: JLG  a=3  b=20  c=0
+  16: MULL  a=1  b=1  c=2
+  17: LOADCL  a=3  b=2  c=0
+  18: ADDL  a=2  b=3  c=2
+  19: JMP  a=14  b=0  c=0
+  20: RET  a=1  b=0  c=0

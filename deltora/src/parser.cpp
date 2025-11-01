@@ -113,7 +113,7 @@ Expr Parser::parsePrimary() {
                 if (!check(TokenKind::RParen)) {
                     do {
                         Expr arg = parseExpr();
-                        args.push_back({"", arg});
+                        args.emplace_back("", arg);
                     } while (match(TokenKind::Comma));
                 }
                 if (!match(TokenKind::RParen))

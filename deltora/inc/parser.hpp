@@ -16,6 +16,7 @@ private:
     bool check(TokenKind k) const;
     bool eof() const;
     Expr parsePrimary();
+    Expr parseUnary();
     Expr parseExpr(int prec = 0);
     Stmt parseStmt();
     Function parseFunction();

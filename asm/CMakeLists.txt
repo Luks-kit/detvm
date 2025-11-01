@@ -32,7 +32,6 @@ target_include_directories(detld PRIVATE ../inc)
 add_executable(detdisasm
     src/disasm.cpp
     src/constant_pool.cpp
-    
 )
 
 target_include_directories(detdisasm PRIVATE ../inc)

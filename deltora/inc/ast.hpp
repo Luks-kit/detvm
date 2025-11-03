@@ -18,13 +18,7 @@ struct ArrayAccess;
 struct Call;
 struct WhenExpr;
 
-struct Expr {
-    using Variant = std::variant<
-        Literal, Ident, UnaryOp, RefOp, BinaryOp,
-        MemberAccess, ArrayAccess, Call, WhenExpr
-    >;
-    Variant node;
-};
+
 
 // === Expression Node Types ===
 struct Literal {
@@ -74,6 +68,14 @@ struct Pattern {
 struct WhenExpr {
     Expr target;
     std::vector<std::pair<Pattern, std::vector<Expr>>> cases;
+};
+
+struct Expr {
+    using Variant = std::variant<
+        Literal, Ident, UnaryOp, RefOp, BinaryOp,
+        MemberAccess, ArrayAccess, Call, WhenExpr
+    >;
+    Variant node;
 };
 
 // === Statements ===

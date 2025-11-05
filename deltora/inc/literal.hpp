@@ -1,57 +1,60 @@
 #pragma once
 #include "node_macros.hpp"
 
-DEFINE_NODE_BASE(Literal, LitType {Long, Double, String, Char, Bool})
+enum class LitKind { Long, Double, String, Char, Bool };
 
-DEFINE_NODE_TYPE(Literal, LongLiteral, Kind::Long, 
-long value;
-)
+// ----------------- Base -----------------
+struct LiteralBase {
+    const LitKind kind;
+    LiteralBase(LitKind k) : kind(k) {}
+};
 
-DEFINE_NODE_TYPE(Literal, DoubleLiteral, Kind::Double,
-double value;
-)
+using LiteralPtr = Ptr<LiteralBase>;
 
-DEFINE_NODE_TYPE(Literal, StringLiteral, Kind::String,
-std::string value;
-)
+// ----------------- Derived -----------------
+struct LongLiteral   { LiteralBase base; long value;
+    LongLiteral(long v) : base(LitKind::Long), value(v) {} };
 
-DEFINE_NODE_TYPE(Literal, CharLiteral, Kind::Char,
-char value;
-)
+struct DoubleLiteral { LiteralBase base; double value;
+    DoubleLiteral(double v) : base(LitKind::Double), value(v) {} };
 
-DEFINE_NODE_TYPE(Literal, BoolLiteral, Kind::Bool, 
-bool value;
-)
+struct StringLiteral { LiteralBase base; std::string value;
+    StringLiteral(const std::string& v) : base(LitKind::String), value(v) {} };
 
-BEGIN_NODE_TABLE(Literal)
-    NODE_ENTRY(LongLiteral)
-    NODE_ENTRY(DoubleLiteral)
-    NODE_ENTRY(StringLiteral)
-    NODE_ENTRY(CharLiteral)
-    NODE_ENTRY(BoolLiteral)
-END_NODE_TABLE(Literal)
+struct CharLiteral   { LiteralBase base; char value;
+    CharLiteral(char v) : base(LitKind::Char), value(v) {} };
 
-DEFINE_NODE_FACTORY(Literal, LongLiteral, Kind::Long,
- [&](LongLiteral* l) {l->value = input;},
- long input
-)
+struct BoolLiteral   { LiteralBase base; bool value;
+    BoolLiteral(bool v) : base(LitKind::Bool), value(v) {} };
 
-DEFINE_NODE_FACTORY(Literal, DoubleLiteral, Kind::Double,
- [&](DoubleLiteral* l) {l->value = input;},
- double input
-)
 
-DEFINE_NODE_FACTORY(Literal, StringLiteral, Kind::String,
- [&](StringLiteral* l) {l->value = input;},
- const std::string& input
-)
 
-DEFINE_NODE_FACTORY(Literal, CharLiteral, Kind::Char,
- [&](CharLiteral* l) {l->value = input;},
- char input
-)
+inline LiteralPtr makeLongLiteral(long v)
+{
+    auto* l = new LongLiteral(v);
+    return LiteralPtr(&l->base);
+}
 
-DEFINE_NODE_FACTORY(Literal, BoolLiteral, Kind::Bool,
- [&](BoolLiteral* l) {l->value = input;},
- bool input
-)
+inline LiteralPtr makeDoubleLiteral(double v)
+{
+    auto* l = new DoubleLiteral(v);
+    return LiteralPtr(&l->base);
+}
+
+inline LiteralPtr makeStringLiteral(const std::string& v)
+{
+    auto* l = new StringLiteral(v);
+    return LiteralPtr(&l->base);
+}
+
+inline LiteralPtr makeCharLiteral(char v)
+{
+    auto* l = new CharLiteral(v);
+    return LiteralPtr(&l->base);
+}
+
+inline LiteralPtr makeBoolLiteral(bool v)
+{
+    auto* l = new BoolLiteral(v);
+    return LiteralPtr(&l->base);
+}

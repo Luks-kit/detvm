@@ -1,7 +1,7 @@
 #include "lexer.hpp"
 #include <cctype>
 
-namespace deltora {
+namespace det {
 
 Lexer::Lexer(const std::string& s) : src(s) {}
 

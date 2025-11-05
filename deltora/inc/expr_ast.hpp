@@ -1,44 +1,64 @@
 #pragma once
-#include "literal.hpp"
+
 #include "node_macros.hpp"
+#include "literal.hpp"
 
-// ---------- Expression base ----------
+enum class ExprKind { Literal, Variable, Binary, Unary, Call };
 
-DEFINE_NODE_BASE(Expr, ExprKind {Literal, Variable, Binary, Unary, Call})
+// ----------------- Base -----------------
+struct ExprBase {
+    const ExprKind kind;
+    ExprBase(ExprKind k) : kind(k) {}
+};
 
-// ---------- Derived types ----------
-DEFINE_NODE_TYPE(Expr, LiteralExpr, Kind::Literal,
-    LiteralPtr value;
-)
-DEFINE_NODE_TYPE(Expr, VariableExpr, Kind::Variable,
-    std::string name;
-)
-DEFINE_NODE_TYPE(Expr, BinaryExpr, Kind::Binary,
-    ExprPtr left;
-    std::string op;
-    ExprPtr right;
-)
-DEFINE_NODE_TYPE(Expr,  UnaryExpr, Kind::Unary,
-    std::string op;
-    ExprPtr expr;
-)
-DEFINE_NODE_TYPE(Expr,CallExpr, Kind::Call,
-    std::string callee;
-    std::vector<ExprPtr> args;
-)
+using ExprPtr = Ptr<ExprBase>;
 
-// ---------- Deleter table ----------
-BEGIN_NODE_TABLE(Expr)
-    NODE_ENTRY(LiteralExpr)
-    NODE_ENTRY(VariableExpr)
-    NODE_ENTRY(BinaryExpr)
-    NODE_ENTRY(UnaryExpr)
-    NODE_ENTRY(CallExpr)
-END_NODE_TABLE(Expr)
+// ----------------- Derived -----------------
+struct LiteralExpr  { ExprBase base; LiteralPtr value;
+    LiteralExpr(LiteralPtr v) : base(ExprKind::Literal), value(std::move(v)) {} };
 
-// ---------- Factories ----------
-DEFINE_NODE_FACTORY(Expr, LiteralExpr, Kind::Literal,  ;)
-DEFINE_NODE_FACTORY(Expr, VariableExpr, Kind::Variable, /*INIT*/ ;)
-DEFINE_NODE_FACTORY(Expr, BinaryExpr, Kind::Binary, /*INIT*/ ;)
-DEFINE_NODE_FACTORY(Expr, UnaryExpr, Kind::Unary, /*INIT*/ ;)
-DEFINE_NODE_FACTORY(Expr, CallExpr, Kind::Call, /*INIT*/ ;)
+struct VariableExpr { ExprBase base; std::string name;
+    VariableExpr(const std::string& n) : base(ExprKind::Variable), name(n) {} };
+
+struct BinaryExpr   { ExprBase base; ExprPtr left, right; std::string op;
+    BinaryExpr(ExprPtr l, ExprPtr r, std::string o)
+        : base(ExprKind::Binary), left(std::move(l)), right(std::move(r)), op(std::move(o)) {} };
+
+struct UnaryExpr    { ExprBase base; ExprPtr operand; std::string op;
+    UnaryExpr(ExprPtr opnd, std::string o)
+        : base(ExprKind::Unary), operand(std::move(opnd)), op(std::move(o)) {} };
+
+struct CallExpr     { ExprBase base; std::string callee; std::vector<ExprPtr> args;
+    CallExpr(std::string c, std::vector<ExprPtr> a)
+        : base(ExprKind::Call), callee(std::move(c)), args(std::move(a)) {} };
+
+// ----------------- Factories -----------------
+inline ExprPtr makeLiteralExpr(LiteralPtr v)
+{
+    auto* e = new LiteralExpr(std::move(v));
+    return ExprPtr(&e->base);
+}
+
+inline ExprPtr makeVariableExpr(const std::string& n)
+{
+    auto* e = new VariableExpr(n);
+    return ExprPtr(&e->base);
+}
+
+inline ExprPtr makeBinaryExpr(ExprPtr l, ExprPtr r, const std::string& op)
+{
+    auto* e = new BinaryExpr(std::move(l), std::move(r), op);
+    return ExprPtr(&e->base);
+}
+
+inline ExprPtr makeUnaryExpr(ExprPtr operand, const std::string& op)
+{
+    auto* e = new UnaryExpr(std::move(operand), op);
+    return ExprPtr(&e->base);
+}
+
+inline ExprPtr makeCallExpr(const std::string& callee, std::vector<ExprPtr> args)
+{
+    auto* e = new CallExpr(callee, std::move(args));
+    return ExprPtr(&e->base);
+}

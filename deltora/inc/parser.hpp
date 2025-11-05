@@ -1,29 +1,30 @@
 #pragma once
-#include "ast.hpp"
 #include "lexer.hpp"
+#include "expr_ast.hpp"
 
-namespace deltora {
+namespace det {
 
 class Parser {
 public:
-    explicit Parser(const std::vector<Token>& tokens);
-    Program parseProgram();
+    explicit Parser(Lexer& lexer) : lexer(lexer) {}
+
+    ExprPtr parse_expr();
 
 private:
-    const Token& peek() const;
-    const Token& advance();
-    bool match(TokenKind k);
-    bool check(TokenKind k) const;
-    bool eof() const;
-    Expr parsePrimary();
-    Expr parseUnary();
-    Expr parseExpr(int prec = 0);
-    Stmt parseStmt();
-    Function parseFunction();
-    Form parseForm();
+    Lexer& lexer;
 
-    const std::vector<Token>& tokens;
-    size_t pos = 0;
+    // Pratt
+    int get_precedence(TokenKind kind);
+    ExprPtr parse_primary();
+    ExprPtr parse_unary();
+    ExprPtr parse_binary_rhs(int prec, ExprPtr lhs);
+
+    // helpers
+    const Token& peek() const { return lexer.peek(); }
+    const Token& advance() { return lexer.advance(); }
+    bool match(TokenKind k) { return lexer.match(k); }
+    bool check(TokenKind k) const { return lexer.check(k); }
+    bool eof() const { return lexer.eof(); }
 };
 
-} // namespace deltora
+} // namespace det

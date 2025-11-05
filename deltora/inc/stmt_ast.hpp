@@ -1,27 +1,69 @@
 #pragma once
 #include "expr_ast.hpp"
 
-DEFINE_NODE_BASE(Stmt, StmtKind { ExprStmt, VarDecl, If, While, Return, Block })
+enum class StmtKind { Expression, VarDecl, If, While, Return, Block };
 
-DEFINE_NODE_TYPE(Stmt, ExprStmt, StmtKind::ExprStmt,
-    ExprPtr expr;
-)
-DEFINE_NODE_TYPE(Stmt, VarDeclStmt, StmtKind::VarDecl,
-    std::string name;
-    ExprPtr initializer;
-)
-DEFINE_NODE_TYPE(Stmt, IfStmt, StmtKind::If,
-    ExprPtr condition;
-    StmtPtr thenBranch;
-    StmtPtr elseBranch;
-)
-DEFINE_NODE_TYPE(Stmt, BlockStmt, StmtKind::Block,
-    std::vector<StmtPtr> statements;
-)
+// ----------------- Base -----------------
+struct StmtBase {
+    const StmtKind kind;
+    StmtBase(StmtKind k) : kind(k) {}
+};
 
-BEGIN_NODE_TABLE(Stmt)
-    NODE_ENTRY(ExprStmt)
-    NODE_ENTRY(VarDeclStmt)
-    NODE_ENTRY(IfStmt)
-    NODE_ENTRY(BlockStmt)
-END_NODE_TABLE(Stmt)
+using StmtPtr = Ptr<StmtBase>;
+
+// ----------------- Derived -----------------
+struct ExprStmt    { StmtBase base; ExprPtr expr;
+    ExprStmt(ExprPtr e) : base(StmtKind::Expression), expr(std::move(e)) {} };
+
+struct VarDeclStmt { StmtBase base; std::string name; ExprPtr initializer;
+    VarDeclStmt(std::string n, ExprPtr init) : base(StmtKind::VarDecl), name(std::move(n)), initializer(std::move(init)) {} };
+
+struct IfStmt      { StmtBase base; ExprPtr condition; StmtPtr thenBranch; StmtPtr elseBranch;
+    IfStmt(ExprPtr cond, StmtPtr t, StmtPtr e)
+        : base(StmtKind::If), condition(std::move(cond)), thenBranch(std::move(t)), elseBranch(std::move(e)) {} };
+
+struct WhileStmt   { StmtBase base; ExprPtr condition; StmtPtr body;
+    WhileStmt(ExprPtr cond, StmtPtr b) : base(StmtKind::While), condition(std::move(cond)), body(std::move(b)) {} };
+
+struct ReturnStmt  { StmtBase base; ExprPtr value;
+    ReturnStmt(ExprPtr v) : base(StmtKind::Return), value(std::move(v)) {} };
+
+struct BlockStmt   { StmtBase base; std::vector<StmtPtr> statements;
+    BlockStmt(std::vector<StmtPtr> stmts) : base(StmtKind::Block), statements(std::move(stmts)) {} };
+
+// ----------------- Factories -----------------
+inline StmtPtr makeExprStmt(ExprPtr e) 
+{ 
+    auto* s = new ExprStmt(std::move(e));
+    return StmtPtr(&s->base); 
+}
+
+inline StmtPtr makeVarDeclStmt(const std::string& name, ExprPtr init)
+{ 
+    auto* s = new VarDeclStmt(name, std::move(init));
+    return StmtPtr(&s->base); 
+}
+
+inline StmtPtr makeIfStmt(ExprPtr cond, StmtPtr t, StmtPtr e)
+{ 
+    auto* s = new IfStmt(std::move(cond), std::move(t), std::move(e));
+    return StmtPtr(&s->base);
+ }
+
+inline StmtPtr makeWhileStmt(ExprPtr cond, StmtPtr body)
+{  
+    auto* s = (new WhileStmt(std::move(cond), std::move(body)));
+    return StmtPtr(&s->base); 
+}
+
+inline StmtPtr makeReturnStmt(ExprPtr val)
+{  
+    auto* s = (new ReturnStmt(std::move(val)));
+    return StmtPtr(&s->base);
+}
+
+inline StmtPtr makeBlockStmt(std::vector<StmtPtr> stmts)
+{   
+    auto* s = (new BlockStmt(std::move(stmts))); 
+    return StmtPtr(&s->base);
+}
